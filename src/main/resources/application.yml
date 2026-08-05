@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: qing-ai-agent
+  ai:
+    model:
+      chat: ollama
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        model: gemma3:1b
+    dashscope:
+      enabled: false
+      api-key: "${DASHSCOPE_API_KEY:${AI_DASHSCOPE_API_KEY:}}"
+      chat:
+        options:
+          model: qwen3.7-max
+
+# 与教程保持一致，统一通过 /api 作为后端接口上下文路径。
+server:
+  port: 8123
+  servlet:
+    context-path: /api
+
+# Springdoc 负责生成 OpenAPI 文档，扫描根项目的 controller 包。
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: default
+      paths-to-match: '/**'
+      packages-to-scan: com.lian.qingaiagent.controller
+
+# Knife4j 在 Springdoc 文档之上提供中文接口文档页面，访问路径为 /api/doc.html。
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn

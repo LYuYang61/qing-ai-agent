@@ -34,6 +34,7 @@
         <langchain4j.version>1.18.0-beta28</langchain4j.version>
         <hutool.version>5.8.47</hutool.version>
         <knife4j.version>4.5.0</knife4j.version>
+        <kryo.version>5.6.2</kryo.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -43,6 +44,14 @@
                 <version>1.1.2</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <!-- 显式对齐 Spring AI 1.1.2 声明的 victools 版本：不钉住时 Maven 最近路径调解会选中
+                 DashScope SDK 传入的 jsonschema-generator 4.31.1，与 4.38.0 的 module 混用，
+                 结构化输出（entity）运行时报 ClassNotFoundException: AnnotationHelper。 -->
+            <dependency>
+                <groupId>com.github.victools</groupId>
+                <artifactId>jsonschema-generator</artifactId>
+                <version>4.38.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -79,6 +88,11 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-community-dashscope</artifactId>
             <version>${langchain4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.esotericsoftware</groupId>
+            <artifactId>kryo</artifactId>
+            <version>${kryo.version}</version>
         </dependency>
 
         <dependency>

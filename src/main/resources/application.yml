@@ -14,6 +14,11 @@ spring:
       chat:
         options:
           model: qwen3.7-max
+  # 上传接口只用于多模态学习示例，限制单个请求大小，避免误传超大文件。
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 # 与教程保持一致，统一通过 /api 作为后端接口上下文路径。
 server:
@@ -39,3 +44,14 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+
+# 第三期扩展知识配置：默认使用文件记忆；改为 memory 可观察重启后记忆丢失的差异。
+qing:
+  ai:
+    chat-memory:
+      backend: file
+      file-dir: ${QING_AI_CHAT_MEMORY_DIR:${user.dir}/tmp/chat-memory}
+      max-messages: 20
+    multimodal:
+      model: qwen3.7-plus
+      max-upload-bytes: 10485760

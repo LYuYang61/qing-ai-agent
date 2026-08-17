@@ -4,3 +4,24 @@ spring:
       chat: dashscope
     dashscope:
       enabled: true
+      # 本地 RAG 启动时会为 Markdown 文档生成向量；模型名与 1.1.2.0 适配器默认值保持一致。
+      embedding:
+        enabled: true
+        options:
+          model: text-embedding-v3
+
+qing:
+  ai:
+    rag:
+      local:
+        # 开启后首次启动会调用 Embedding API 构建内存向量库。
+        enabled: true
+        similarity-threshold: 0.45
+        top-k: 4
+      cloud:
+        # 云知识库需要先在百炼创建索引，配置索引名称后再手动开启。
+        enabled: false
+        index-name: ${QING_AI_RAG_CLOUD_INDEX:}
+        workspace-id: ${QING_AI_RAG_WORKSPACE_ID:}
+        dense-similarity-top-k: 5
+        sparse-similarity-top-k: 5

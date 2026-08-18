@@ -1,5 +1,6 @@
 package com.lian.qingaiagent.rag;
 
+import com.lian.qingaiagent.advisor.StudyLoggerAdvisor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.model.ChatModel;
@@ -24,9 +25,11 @@ public class CloudLoveRagApp {
     public CloudLoveRagApp(
             @Qualifier("dashScopeChatModel") ChatModel dashScopeChatModel,
             @Qualifier("loveAppCloudRagAdvisor") Advisor cloudRagAdvisor) {
+        // 云 RAG Advisor(order=-100) 先执行云检索，日志 Advisor(order=0) 后执行，
+        // 日志中可直接观察云知识库返回的资料如何拼进用户消息。
         this.chatClient = ChatClient.builder(dashScopeChatModel)
                 .defaultSystem(SYSTEM_PROMPT)
-                .defaultAdvisors(cloudRagAdvisor)
+                .defaultAdvisors(cloudRagAdvisor, new StudyLoggerAdvisor())
                 .build();
     }
 

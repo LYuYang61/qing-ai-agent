@@ -59,6 +59,13 @@ public class AiApplicationController {
         return loveApp.chatWithReReading(message, chatId);
     }
 
+    @GetMapping("/love/rag")
+    public String loveRag(@RequestParam String message,
+                          @RequestParam String chatId,
+                          @RequestParam(defaultValue = "") String status) {
+        return loveApp.chatWithRag(message, chatId, status);
+    }
+
     @GetMapping("/study/chat")
     public String studyChat(@RequestParam String message, @RequestParam String chatId) {
         return studyPlannerApp.chat(message, chatId);

@@ -44,6 +44,9 @@ public class LoveKnowledgeDocumentLoader {
         }
     }
 
+    /**
+     * 读取单个 Markdown 文件，按标题和段落拆分成多个 Document，并附加业务元数据。
+     */
     private List<Document> readResource(Resource resource) {
         Map<String, Object> metadata = metadataFor(resource);
         MarkdownDocumentReaderConfig config = MarkdownDocumentReaderConfig.builder()
@@ -53,6 +56,16 @@ public class LoveKnowledgeDocumentLoader {
         return new ArrayList<>(new MarkdownDocumentReader(resource, config).get());
     }
 
+    /**
+     * 根据文件路径和文件名生成业务元数据。
+     *
+     * <p>元数据包括：
+     * <ul>
+     *   <li>source：文件名</li>
+     *   <li>knowledgeType：faq 或 candidate</li>
+     *   <li>status：单身、恋爱、已婚（仅 faq 类型有）</li>
+     * </ul>
+     */
     private Map<String, Object> metadataFor(Resource resource) {
         String description = resource.getDescription().replace('\\', '/');
         String fileName = resource.getFilename() == null ? description : resource.getFilename();
@@ -68,6 +81,11 @@ public class LoveKnowledgeDocumentLoader {
         return metadata;
     }
 
+    /**
+     * 根据文件名判断恋爱关系状态。
+     *
+     * <p>如果文件名包含单身、恋爱、已婚关键字，则返回对应状态；否则返回通用。
+     */
     private String findRelationshipStatus(String fileName) {
         return RELATIONSHIP_STATUSES.stream()
                 .filter(fileName::contains)

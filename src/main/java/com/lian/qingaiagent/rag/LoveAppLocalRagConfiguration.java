@@ -30,13 +30,19 @@ import java.util.List;
 @ConditionalOnProperty(prefix = "qing.ai.rag.local", name = "enabled", havingValue = "true")
 public class LoveAppLocalRagConfiguration {
 
+    /**
+     * 把本地 Markdown 文档向量化并放入内存向量库。
+     *
+     * <p>SimpleVectorStore 只把向量保存在当前 JVM 内存中，适合学习完整链路；生产环境应替换为
+     * PGVector 等持久化向量数据库。</p>
+     */
     @Bean("loveAppVectorStore")
     public SimpleVectorStore loveAppVectorStore(
             @Qualifier("dashscopeEmbeddingModel") EmbeddingModel embeddingModel,
             LoveKnowledgeDocumentLoader documentLoader) {
         SimpleVectorStore vectorStore = SimpleVectorStore.builder(embeddingModel).build();
-        List<Document> sourceDocuments = documentLoader.loadMarkdownDocuments();
-        List<Document> chunks = TokenTextSplitter.builder()
+        List<Document> sourceDocuments = documentLoader.loadMarkdownDocuments(); // 从本地 Markdown 文件加载文档
+        List<Document> chunks = TokenTextSplitter.builder()  // 把文档拆分成更小的文本块，便于向量化
                 .withChunkSize(800)
                 .withMinChunkSizeChars(200)
                 .withMinChunkLengthToEmbed(5)
@@ -51,6 +57,12 @@ public class LoveAppLocalRagConfiguration {
         return vectorStore;
     }
 
+    /**
+     * 构造本地问答链使用的 RAG Advisor，只检索恋爱问答资料。
+     *
+     * <p>如果没有足够相关的资料，ContextualQueryAugmenter 会阻止模型继续生成回答，而是返回
+     * emptyContextPromptTemplate 中的提示语。</p>
+     */
     @Bean("loveAppLocalFaqRagAdvisor")
     public Advisor loveAppLocalFaqRagAdvisor(
             @Qualifier("loveAppVectorStore") VectorStore vectorStore,
@@ -71,6 +83,12 @@ public class LoveAppLocalRagConfiguration {
                 .build();
     }
 
+    /**
+     * 构造本地推荐链使用的 RAG Advisor，只检索恋爱对象候选人资料。
+     *
+     * <p>如果没有足够相关的候选人，ContextualQueryAugmenter 会阻止模型继续生成回答，而是返回
+     * emptyContextPromptTemplate 中的提示语。</p>
+     */
     @Bean("loveAppLocalCandidateRagAdvisor")
     public Advisor loveAppLocalCandidateRagAdvisor(
             @Qualifier("loveAppVectorStore") VectorStore vectorStore,

@@ -2,11 +2,15 @@ package com.lian.qingaiagent.app;
 
 import com.lian.qingaiagent.advisor.ReReadingAdvisor;
 import com.lian.qingaiagent.advisor.StudyLoggerAdvisor;
+import com.lian.qingaiagent.rag.LoveRagFilterFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -30,8 +34,11 @@ public class LoveApp {
 
     private final ChatClient chatClient;
 
+    private final ObjectProvider<Advisor> localFaqRagAdvisorProvider;
+
     public LoveApp(@Qualifier("dashScopeChatModel") ChatModel dashScopeChatModel,
-                   @Qualifier("loveChatMemory") ChatMemory chatMemory) {
+                   @Qualifier("loveChatMemory") ChatMemory chatMemory,
+                   @Qualifier("loveAppLocalFaqRagAdvisor") ObjectProvider<Advisor> localFaqRagAdvisorProvider) {
         // ChatMemory 只负责保存消息；MessageChatMemoryAdvisor 负责把历史消息注入下一次请求。
         // 具体使用内存还是文件，由 qing.ai.chat-memory.backend 配置决定。
         this.chatClient = ChatClient.builder(dashScopeChatModel)
@@ -40,6 +47,7 @@ public class LoveApp {
                         MessageChatMemoryAdvisor.builder(chatMemory).build(),
                         new StudyLoggerAdvisor())
                 .build();
+        this.localFaqRagAdvisorProvider = localFaqRagAdvisorProvider;
     }
 
     public String chat(String message, String conversationId) {
@@ -76,6 +84,29 @@ public class LoveApp {
                 .advisors(spec -> spec
                         .param(ChatMemory.CONVERSATION_ID, conversationId)
                         .advisors(new ReReadingAdvisor()))
+                .call()
+                .content();
+    }
+
+    /**
+     * 在原有多轮对话链路上增加本地 FAQ RAG。
+     *
+     * <p>RAG Advisor 只在本次请求中加入，普通恋爱对话不会自动检索知识库；ChatMemory Advisor
+     * 仍然负责读取和保存同一个 conversationId 的历史消息。</p>
+     */
+    public String chatWithRag(String message, String conversationId, String status) {
+        Advisor ragAdvisor = localFaqRagAdvisorProvider.getIfAvailable();
+        if (ragAdvisor == null) {
+            throw new IllegalStateException("本地 RAG 未启用，请设置 qing.ai.rag.local.enabled=true");
+        }
+        return chatClient.prompt()
+                .user(message)
+                .advisors(spec -> spec
+                        .param(ChatMemory.CONVERSATION_ID, conversationId)
+                        .advisors(ragAdvisor)
+                        // 通过请求参数覆盖 Advisor 的默认过滤条件，按关系状态缩小 FAQ 检索范围。
+                        .param(VectorStoreDocumentRetriever.FILTER_EXPRESSION,
+                                LoveRagFilterFactory.faq(status)))
                 .call()
                 .content();
     }

@@ -4,11 +4,11 @@ spring:
       chat: dashscope
     dashscope:
       enabled: true
-      # 本地 RAG 启动时会为 Markdown 文档生成向量；模型名与 1.1.2.0 适配器默认值保持一致。
+      # 本地 RAG 启动时会为 Markdown 文档生成向量；适配器默认值为 text-embedding-v3，此处显式配置为 qwen3.7-text-embedding。
       embedding:
         enabled: true
         options:
-          model: text-embedding-v3
+          model: qwen3.7-text-embedding
 
 qing:
   ai:

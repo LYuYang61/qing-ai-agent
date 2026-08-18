@@ -1,5 +1,6 @@
 package com.lian.qingaiagent.rag;
 
+import com.lian.qingaiagent.advisor.StudyLoggerAdvisor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.model.ChatModel;
@@ -45,7 +46,11 @@ public class LoveRagApp {
             @Qualifier("dashScopeChatModel") ChatModel dashScopeChatModel,
             @Qualifier("loveAppLocalFaqRagAdvisor") Advisor faqRagAdvisor,
             @Qualifier("loveAppLocalCandidateRagAdvisor") Advisor candidateRagAdvisor) {
-        this.chatClient = ChatClient.builder(dashScopeChatModel).build();
+        // 挂载日志 Advisor（order=0）观察调用链：RAG Advisor 的 order 为 -100，
+        // 会先完成检索增强，因此日志里打印的是拼接了知识库资料后的最终 Prompt。
+        this.chatClient = ChatClient.builder(dashScopeChatModel)
+                .defaultAdvisors(new StudyLoggerAdvisor())
+                .build();
         this.faqRagAdvisor = faqRagAdvisor;
         this.candidateRagAdvisor = candidateRagAdvisor;
     }

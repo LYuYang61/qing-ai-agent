@@ -1,6 +1,7 @@
 package com.lian.qingaiagent.rag;
 
 import org.springframework.ai.document.Document;
+import org.springframework.ai.document.DocumentReader;
 import org.springframework.ai.reader.markdown.MarkdownDocumentReader;
 import org.springframework.ai.reader.markdown.config.MarkdownDocumentReaderConfig;
 import org.springframework.context.annotation.Profile;
@@ -23,16 +24,27 @@ import java.util.Map;
  */
 @Component
 @Profile("dashscope")
-public class LoveKnowledgeDocumentLoader {
+public class LoveKnowledgeDocumentLoader implements DocumentReader {
 
     private static final String DOCUMENT_PATTERN = "classpath*:document/**/*.md";
 
-    private static final List<String> RELATIONSHIP_STATUSES = List.of("单身", "恋爱", "已婚");
+    /**
+     * 用带"篇"后缀的完整词元匹配文件名，避免公共前缀"恋爱常见问题和回答"里的"恋爱"
+     * 抢先命中已婚篇/单身篇——第四期曾因裸子串匹配把已婚篇全部错标为"恋爱"。
+     */
+    private static final Map<String, String> STATUS_FILE_TOKENS = Map.of(
+            "单身篇", "单身",
+            "恋爱篇", "恋爱",
+            "已婚篇", "已婚");
 
     private final PathMatchingResourcePatternResolver resourceResolver =
             new PathMatchingResourcePatternResolver();
 
-    public List<Document> loadMarkdownDocuments() {
+    /**
+     * 自定义 DocumentReader 入口，保留统一的 Spring AI ETL 抽取契约。
+     */
+    @Override
+    public List<Document> get() {
         try {
             Resource[] resources = resourceResolver.getResources(DOCUMENT_PATTERN);
             return Arrays.stream(resources)
@@ -42,6 +54,11 @@ public class LoveKnowledgeDocumentLoader {
         } catch (IOException exception) {
             throw new IllegalStateException("无法读取 classpath 下的 RAG Markdown 文档", exception);
         }
+    }
+
+    /** 保留第四期的业务方法名，便于已有代码和测试继续使用。 */
+    public List<Document> loadMarkdownDocuments() {
+        return get();
     }
 
     /**
@@ -74,6 +91,9 @@ public class LoveKnowledgeDocumentLoader {
 
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("source", fileName);
+        metadata.put("sourceType", "classpath-markdown");
+        metadata.put("language", "zh-CN");
+        metadata.put("documentVersion", "demo-v1");
         metadata.put("knowledgeType", knowledgeType);
         if ("faq".equals(knowledgeType)) {
             metadata.put("status", findRelationshipStatus(fileName));
@@ -84,11 +104,13 @@ public class LoveKnowledgeDocumentLoader {
     /**
      * 根据文件名判断恋爱关系状态。
      *
-     * <p>如果文件名包含单身、恋爱、已婚关键字，则返回对应状态；否则返回通用。
+     * <p>三个词元（单身篇/恋爱篇/已婚篇）互斥，不会同时出现在一个文件名里，
+     * 因此匹配顺序无关；都不命中时返回通用。
      */
     private String findRelationshipStatus(String fileName) {
-        return RELATIONSHIP_STATUSES.stream()
-                .filter(fileName::contains)
+        return STATUS_FILE_TOKENS.entrySet().stream()
+                .filter(entry -> fileName.contains(entry.getKey()))
+                .map(Map.Entry::getValue)
                 .findFirst()
                 .orElse("通用");
     }

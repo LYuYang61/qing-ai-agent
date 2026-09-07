@@ -47,14 +47,26 @@ public class LoveAppCloudRagConfiguration {
         }
         DashScopeApi dashScopeApi = apiBuilder.build();
 
-        DashScopeDocumentRetrieverOptions retrieverOptions = DashScopeDocumentRetrieverOptions.builder()
+        DashScopeDocumentRetrieverOptions.Builder optionsBuilder = DashScopeDocumentRetrieverOptions.builder()
                 .indexName(cloud.getIndexName())
                 .denseSimilarityTopK(cloud.getDenseSimilarityTopK())
                 .sparseSimilarityTopK(cloud.getSparseSimilarityTopK())
                 // 第四期先观察基础检索链路；查询改写和重排属于后续 RAG 调优内容。
                 .enableRewrite(false)
-                .enableReranking(false)
-                .build();
+                .enableReranking(false);
+        if (!cloud.getSearchFilters().isEmpty()) {
+            // 百炼适配器 1.1.2.0 将固定的 metadata 条件传给云端检索接口。
+            optionsBuilder.searchFilters(cloud.getSearchFilters());
+        }
+        DashScopeDocumentRetrieverOptions retrieverOptions = optionsBuilder.build();
+        if (cloud.getMetadata().isAutoExtractionEnabled()) {
+            if (cloud.getMetadata().getFields().isEmpty()) {
+                log.warn("已声明启用百炼元数据自动抽取，但没有配置字段；请在百炼知识库创建向导中配置抽取规则");
+            } else {
+                log.info("百炼知识库元数据自动抽取字段：{}；抽取规则需在云端知识库创建时配置",
+                        cloud.getMetadata().getFields());
+            }
+        }
         DocumentRetriever documentRetriever = new DashScopeDocumentRetriever(dashScopeApi, retrieverOptions);
         log.info("云知识库 RAG Advisor 已创建：索引={}，denseTopK={}，sparseTopK={}",
                 cloud.getIndexName(), cloud.getDenseSimilarityTopK(), cloud.getSparseSimilarityTopK());

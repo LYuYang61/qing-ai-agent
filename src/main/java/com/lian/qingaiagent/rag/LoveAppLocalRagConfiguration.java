@@ -5,11 +5,12 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
+import org.springframework.ai.rag.preretrieval.query.transformation.QueryTransformer;
 import org.springframework.ai.rag.retrieval.search.DocumentRetriever;
 import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
-import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -30,31 +31,44 @@ import java.util.List;
 @ConditionalOnProperty(prefix = "qing.ai.rag.local", name = "enabled", havingValue = "true")
 public class LoveAppLocalRagConfiguration {
 
+    private static final int RAG_ADVISOR_ORDER = -100;
+
     /**
-     * 把本地 Markdown 文档向量化并放入内存向量库。
+     * 构造恋爱知识库的内存向量库。
      *
-     * <p>SimpleVectorStore 只把向量保存在当前 JVM 内存中，适合学习完整链路；生产环境应替换为
-     * PGVector 等持久化向量数据库。</p>
+     * <p>如果没有可向量化的 Markdown 文档，抛出异常阻止应用启动。</p>
      */
     @Bean("loveAppVectorStore")
+    @ConditionalOnProperty(
+            prefix = "qing.ai.rag.local", name = "store", havingValue = "memory", matchIfMissing = true)
     public SimpleVectorStore loveAppVectorStore(
             @Qualifier("dashscopeEmbeddingModel") EmbeddingModel embeddingModel,
-            LoveKnowledgeDocumentLoader documentLoader) {
+            LoveKnowledgeIngestionService ingestionService,
+            ObjectProvider<PostgresKeywordDocumentStore> keywordDocumentStoreProvider) {
         SimpleVectorStore vectorStore = SimpleVectorStore.builder(embeddingModel).build();
-        List<Document> sourceDocuments = documentLoader.loadMarkdownDocuments(); // 从本地 Markdown 文件加载文档
-        List<Document> chunks = TokenTextSplitter.builder()  // 把文档拆分成更小的文本块，便于向量化
-                .withChunkSize(800)
-                .withMinChunkSizeChars(200)
-                .withMinChunkLengthToEmbed(5)
-                .withKeepSeparator(true)
-                .build()
-                .apply(sourceDocuments);
+        List<Document> chunks = ingestionService.prepareChunks();
         if (chunks.isEmpty()) {
             throw new IllegalStateException("RAG 知识库没有可向量化的 Markdown 文档");
         }
         // add() 会逐个调用 EmbeddingModel，把文本块转换成向量并放入内存向量库。
         vectorStore.add(chunks);
+        PostgresKeywordDocumentStore keywordDocumentStore = keywordDocumentStoreProvider.getIfAvailable();
+        if (keywordDocumentStore != null) {
+            keywordDocumentStore.replaceAll(chunks);
+        }
         return vectorStore;
+    }
+
+    @Bean("loveAppLocalFaqDocumentRetriever")
+    public DocumentRetriever loveAppLocalFaqDocumentRetriever(
+            @Qualifier("loveAppVectorStore") VectorStore vectorStore,
+            RagProperties properties) {
+        return VectorStoreDocumentRetriever.builder()
+                .vectorStore(vectorStore)
+                .filterExpression(LoveRagFilterFactory.faq(null))
+                .similarityThreshold(properties.getLocal().getSimilarityThreshold())
+                .topK(properties.getLocal().getTopK())
+                .build();
     }
 
     /**
@@ -65,46 +79,56 @@ public class LoveAppLocalRagConfiguration {
      */
     @Bean("loveAppLocalFaqRagAdvisor")
     public Advisor loveAppLocalFaqRagAdvisor(
-            @Qualifier("loveAppVectorStore") VectorStore vectorStore,
-            RagProperties properties) {
-        DocumentRetriever documentRetriever = VectorStoreDocumentRetriever.builder()
-                .vectorStore(vectorStore)
-                .filterExpression(LoveRagFilterFactory.faq(null))
-                .similarityThreshold(properties.getLocal().getSimilarityThreshold())
-                .topK(properties.getLocal().getTopK())
-                .build();
-        return RetrievalAugmentationAdvisor.builder()
+            @Qualifier("loveAppLocalFaqDocumentRetriever") DocumentRetriever documentRetriever,
+            ObjectProvider<QueryTransformer> queryTransformerProvider) {
+        RetrievalAugmentationAdvisor.Builder advisorBuilder = RetrievalAugmentationAdvisor.builder()
                 .documentRetriever(documentRetriever)
                 .queryAugmenter(ContextualQueryAugmenter.builder()
                         .allowEmptyContext(false)
                         .emptyContextPromptTemplate(new org.springframework.ai.chat.prompt.PromptTemplate(
                                 "抱歉，当前恋爱知识库中没有找到足够相关的资料，请换一种恋爱问题描述。"))
                         .build())
-                .build();
+                .order(RAG_ADVISOR_ORDER);
+        QueryTransformer queryTransformer = queryTransformerProvider.getIfAvailable();
+        if (queryTransformer != null) {
+            advisorBuilder.queryTransformers(queryTransformer);
+        }
+        return advisorBuilder.build();
     }
 
     /**
-     * 构造本地推荐链使用的 RAG Advisor，只检索恋爱对象候选人资料。
+     * 构造本地问答链使用的 RAG Advisor，只检索恋爱候选人资料。
      *
-     * <p>如果没有足够相关的候选人，ContextualQueryAugmenter 会阻止模型继续生成回答，而是返回
+     * <p>如果没有足够相关的资料，ContextualQueryAugmenter 会阻止模型继续生成回答，而是返回
      * emptyContextPromptTemplate 中的提示语。</p>
      */
     @Bean("loveAppLocalCandidateRagAdvisor")
     public Advisor loveAppLocalCandidateRagAdvisor(
-            @Qualifier("loveAppVectorStore") VectorStore vectorStore,
-            RagProperties properties) {
-        DocumentRetriever documentRetriever = VectorStoreDocumentRetriever.builder()
-                .vectorStore(vectorStore)
-                .filterExpression(LoveRagFilterFactory.candidates())
-                .similarityThreshold(properties.getLocal().getSimilarityThreshold())
-                .topK(properties.getLocal().getTopK())
-                .build();
-        return RetrievalAugmentationAdvisor.builder()
+            @Qualifier("loveAppLocalCandidateDocumentRetriever") DocumentRetriever documentRetriever,
+            ObjectProvider<QueryTransformer> queryTransformerProvider) {
+        RetrievalAugmentationAdvisor.Builder advisorBuilder = RetrievalAugmentationAdvisor.builder()
                 .documentRetriever(documentRetriever)
                 // 没有合适候选人时仍让模型输出空 matches，而不是把普通文本强行解析成对象。
                 .queryAugmenter(ContextualQueryAugmenter.builder()
                         .allowEmptyContext(true)
                         .build())
+                .order(RAG_ADVISOR_ORDER);
+        QueryTransformer queryTransformer = queryTransformerProvider.getIfAvailable();
+        if (queryTransformer != null) {
+            advisorBuilder.queryTransformers(queryTransformer);
+        }
+        return advisorBuilder.build();
+    }
+
+    @Bean("loveAppLocalCandidateDocumentRetriever")
+    public DocumentRetriever loveAppLocalCandidateDocumentRetriever(
+            @Qualifier("loveAppVectorStore") VectorStore vectorStore,
+            RagProperties properties) {
+        return VectorStoreDocumentRetriever.builder()
+                .vectorStore(vectorStore)
+                .filterExpression(LoveRagFilterFactory.candidates())
+                .similarityThreshold(properties.getLocal().getSimilarityThreshold())
+                .topK(properties.getLocal().getTopK())
                 .build();
     }
 }

@@ -1,0 +1,22 @@
+spring:
+  config:
+    activate:
+      on-profile: hybrid
+
+qing:
+  ai:
+    rag:
+      local:
+        # 混合检索使用 PGVector 做语义召回，同时用同一 PostgreSQL 的 JSONB 文档表做关键词召回。
+        store: pgvector
+      hybrid:
+        enabled: true
+        keyword-top-k: 6
+        result-top-k: 6
+        reciprocal-rank-constant: 60
+      postgres:
+        enabled: true
+        url: jdbc:postgresql://127.0.0.1:5433/qing_ai_agent
+        username: qing_ai
+        # 本地学习库密码走环境变量,默认值仅为本地开发便利;正式环境务必显式配置 QING_AI_PG_PASSWORD。
+        password: ${QING_AI_PG_PASSWORD:123456}

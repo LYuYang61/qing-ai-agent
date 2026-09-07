@@ -2,6 +2,9 @@ package com.lian.qingaiagent.rag;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.vectorstore.filter.Filter;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
+
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -33,5 +36,23 @@ class LoveRagFilterFactoryTest {
         assertEquals(Filter.ExpressionType.EQ, expression.type());
         assertEquals("knowledgeType", ((Filter.Key) expression.left()).key());
         assertEquals("candidate", ((Filter.Value) expression.right()).value());
+    }
+
+    @Test
+    void convertsNestedEqualityFiltersForKeywordStore() {
+        Map<String, Object> filters = LoveRagFilterFactory.equalityFilters(LoveRagFilterFactory.faq("单身"));
+
+        assertEquals(Map.of("knowledgeType", "faq", "status", "单身"), filters);
+    }
+
+    @Test
+    void rejectsNonEqualityFiltersForKeywordStore() {
+        Filter.Expression expression = new FilterExpressionBuilder()
+                .or(new FilterExpressionBuilder().eq("status", "单身"),
+                        new FilterExpressionBuilder().eq("status", "恋爱"))
+                .build();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> LoveRagFilterFactory.equalityFilters(expression));
     }
 }

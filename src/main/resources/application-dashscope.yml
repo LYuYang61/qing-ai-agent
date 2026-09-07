@@ -16,8 +16,13 @@ qing:
       local:
         # 开启后首次启动会调用 Embedding API 构建内存向量库。
         enabled: true
+        store: memory
         similarity-threshold: 0.45
         top-k: 4
+        metadata:
+          # 每个文档会额外调用一次 ChatModel，学习时按需打开，默认关闭以控制成本。
+          keyword-enrichment-enabled: false
+          keyword-count: 5
       cloud:
         # 云知识库需要先在百炼创建索引，配置索引名称后再手动开启。
         enabled: false
@@ -25,3 +30,24 @@ qing:
         workspace-id: ${QING_AI_RAG_WORKSPACE_ID:}
         dense-similarity-top-k: 5
         sparse-similarity-top-k: 5
+        metadata:
+          # 自动抽取规则必须在百炼创建知识库时配置；这里仅记录实验意图和字段名。
+          auto-extraction-enabled: false
+          fields: []
+        # 适配器 1.1.2.0 的云端 metadata 过滤格式，例如：
+        # - key: status
+        #   value: 单身
+        search-filters: []
+      hybrid:
+        enabled: false
+        keyword-top-k: 6
+        result-top-k: 6
+        reciprocal-rank-constant: 60
+      query-translation:
+        enabled: false
+        base-url: ${QING_AI_TRANSLATION_BASE_URL:https://libretranslate.com}
+        api-key: ${LIBRETRANSLATE_API_KEY:}
+        source-language: auto
+        target-language: zh
+      postgres:
+        enabled: false

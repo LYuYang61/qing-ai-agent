@@ -5,6 +5,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
@@ -42,10 +43,13 @@ public class LoveRagApp {
 
     private final Advisor candidateRagAdvisor;
 
+    private final ObjectProvider<Advisor> hybridRagAdvisorProvider;
+
     public LoveRagApp(
             @Qualifier("dashScopeChatModel") ChatModel dashScopeChatModel,
             @Qualifier("loveAppLocalFaqRagAdvisor") Advisor faqRagAdvisor,
-            @Qualifier("loveAppLocalCandidateRagAdvisor") Advisor candidateRagAdvisor) {
+            @Qualifier("loveAppLocalCandidateRagAdvisor") Advisor candidateRagAdvisor,
+            @Qualifier("loveAppHybridRagAdvisor") ObjectProvider<Advisor> hybridRagAdvisorProvider) {
         // 挂载日志 Advisor（order=0）观察调用链：RAG Advisor 的 order 为 -100，
         // 会先完成检索增强，因此日志里打印的是拼接了知识库资料后的最终 Prompt。
         this.chatClient = ChatClient.builder(dashScopeChatModel)
@@ -53,6 +57,7 @@ public class LoveRagApp {
                 .build();
         this.faqRagAdvisor = faqRagAdvisor;
         this.candidateRagAdvisor = candidateRagAdvisor;
+        this.hybridRagAdvisorProvider = hybridRagAdvisorProvider;
     }
 
     /** 使用本地 FAQ 向量库回答问题，可按用户关系状态过滤资料。 */
@@ -63,6 +68,25 @@ public class LoveRagApp {
                 // FILTER_EXPRESSION 会进入 RAG Query 的 context，覆盖本次请求的默认 FAQ 过滤条件。
                 .advisors(spec -> spec
                         .advisors(faqRagAdvisor)
+                        .param(VectorStoreDocumentRetriever.FILTER_EXPRESSION,
+                                LoveRagFilterFactory.faq(status)))
+                .call()
+                .content();
+    }
+
+    /** 使用向量检索与 PostgreSQL 关键词检索的 RRF 结果回答问题。 */
+    public String chatWithHybrid(String message, String status) {
+        Advisor hybridRagAdvisor = hybridRagAdvisorProvider.getIfAvailable();
+        if (hybridRagAdvisor == null) {
+            throw new IllegalStateException(
+                    "混合检索未启用，请同时设置 qing.ai.rag.hybrid.enabled=true 和 qing.ai.rag.postgres.enabled=true");
+        }
+        return chatClient.prompt()
+                .system(FAQ_SYSTEM_PROMPT)
+                .user(message)
+                // 混合检索器会从 Query.context 读取同一过滤表达式，保证两路召回使用相同的元数据条件。
+                .advisors(spec -> spec
+                        .advisors(hybridRagAdvisor)
                         .param(VectorStoreDocumentRetriever.FILTER_EXPRESSION,
                                 LoveRagFilterFactory.faq(status)))
                 .call()

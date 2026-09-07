@@ -1,0 +1,16 @@
+spring:
+  config:
+    activate:
+      on-profile: pgvector
+
+qing:
+  ai:
+    rag:
+      local:
+        store: pgvector
+      postgres:
+        enabled: true
+        url: jdbc:postgresql://127.0.0.1:5433/qing_ai_agent
+        username: qing_ai
+        # 本地学习库密码走环境变量,默认值仅为本地开发便利;正式环境务必显式配置 QING_AI_PG_PASSWORD。
+        password: ${QING_AI_PG_PASSWORD:123456}

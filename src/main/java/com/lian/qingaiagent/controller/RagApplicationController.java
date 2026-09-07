@@ -5,6 +5,7 @@ import com.lian.qingaiagent.rag.LoveRagApp;
 import org.springframework.ai.rag.Query;
 import org.springframework.ai.rag.preretrieval.query.transformation.QueryTransformer;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,14 +24,15 @@ public class RagApplicationController {
 
     private final ObjectProvider<CloudLoveRagApp> cloudRagAppProvider;
 
-    private final ObjectProvider<QueryTransformer> queryTransformerProvider;
+    private final ObjectProvider<QueryTransformer> translationQueryTransformerProvider;
 
     public RagApplicationController(ObjectProvider<LoveRagApp> localRagAppProvider,
                                     ObjectProvider<CloudLoveRagApp> cloudRagAppProvider,
-                                    ObjectProvider<QueryTransformer> queryTransformerProvider) {
+                                    @Qualifier("loveExternalTranslationQueryTransformer")
+                                    ObjectProvider<QueryTransformer> translationQueryTransformerProvider) {
         this.localRagAppProvider = localRagAppProvider;
         this.cloudRagAppProvider = cloudRagAppProvider;
-        this.queryTransformerProvider = queryTransformerProvider;
+        this.translationQueryTransformerProvider = translationQueryTransformerProvider;
     }
 
     @GetMapping("/local/chat")
@@ -51,7 +53,8 @@ public class RagApplicationController {
 
     @GetMapping("/query/translate")
     public String translateQuery(@RequestParam String message) {
-        QueryTransformer queryTransformer = queryTransformerProvider.getIfAvailable();
+        // 按 Bean 名称注入翻译转换器；后续出现压缩、重写等多个 QueryTransformer Bean 时也不会产生歧义。
+        QueryTransformer queryTransformer = translationQueryTransformerProvider.getIfAvailable();
         if (queryTransformer == null) {
             throw unavailable("外部翻译查询转换器未启用，请设置 qing.ai.rag.query-translation.enabled=true");
         }

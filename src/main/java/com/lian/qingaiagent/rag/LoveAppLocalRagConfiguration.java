@@ -5,6 +5,7 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
+import org.springframework.ai.rag.preretrieval.query.expansion.QueryExpander;
 import org.springframework.ai.rag.preretrieval.query.transformation.QueryTransformer;
 import org.springframework.ai.rag.retrieval.search.DocumentRetriever;
 import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
@@ -75,12 +76,16 @@ public class LoveAppLocalRagConfiguration {
      * 构造本地问答链使用的 RAG Advisor，只检索恋爱问答资料。
      *
      * <p>如果没有足够相关的资料，ContextualQueryAugmenter 会阻止模型继续生成回答，而是返回
-     * emptyContextPromptTemplate 中的提示语。</p>
+     * emptyContextPromptTemplate 中的提示语。可选的查询转换器链与扩展器统一由
+     * {@link LoveRagQueryChain} 按名称装配，三个 provider 对应的开关未启用时自动缺席。</p>
      */
     @Bean("loveAppLocalFaqRagAdvisor")
     public Advisor loveAppLocalFaqRagAdvisor(
             @Qualifier("loveAppLocalFaqDocumentRetriever") DocumentRetriever documentRetriever,
-            ObjectProvider<QueryTransformer> queryTransformerProvider) {
+            @Qualifier("loveCompressionQueryTransformer") ObjectProvider<QueryTransformer> compressionProvider,
+            @Qualifier("loveRewriteQueryTransformer") ObjectProvider<QueryTransformer> rewriteProvider,
+            @Qualifier("loveExternalTranslationQueryTransformer") ObjectProvider<QueryTransformer> translationProvider,
+            ObjectProvider<QueryExpander> queryExpanderProvider) {
         RetrievalAugmentationAdvisor.Builder advisorBuilder = RetrievalAugmentationAdvisor.builder()
                 .documentRetriever(documentRetriever)
                 .queryAugmenter(ContextualQueryAugmenter.builder()
@@ -89,10 +94,10 @@ public class LoveAppLocalRagConfiguration {
                                 "抱歉，当前恋爱知识库中没有找到足够相关的资料，请换一种恋爱问题描述。"))
                         .build())
                 .order(RAG_ADVISOR_ORDER);
-        QueryTransformer queryTransformer = queryTransformerProvider.getIfAvailable();
-        if (queryTransformer != null) {
-            advisorBuilder.queryTransformers(queryTransformer);
-        }
+        LoveRagQueryChain.applyToBuilder(
+                advisorBuilder,
+                LoveRagQueryChain.assembleQueryTransformers(compressionProvider, rewriteProvider, translationProvider),
+                queryExpanderProvider);
         return advisorBuilder.build();
     }
 
@@ -100,12 +105,15 @@ public class LoveAppLocalRagConfiguration {
      * 构造本地问答链使用的 RAG Advisor，只检索恋爱候选人资料。
      *
      * <p>如果没有足够相关的资料，ContextualQueryAugmenter 会阻止模型继续生成回答，而是返回
-     * emptyContextPromptTemplate 中的提示语。</p>
+     * emptyContextPromptTemplate 中的提示语。查询转换器链与扩展器的装配方式与 FAQ Advisor 相同。</p>
      */
     @Bean("loveAppLocalCandidateRagAdvisor")
     public Advisor loveAppLocalCandidateRagAdvisor(
             @Qualifier("loveAppLocalCandidateDocumentRetriever") DocumentRetriever documentRetriever,
-            ObjectProvider<QueryTransformer> queryTransformerProvider) {
+            @Qualifier("loveCompressionQueryTransformer") ObjectProvider<QueryTransformer> compressionProvider,
+            @Qualifier("loveRewriteQueryTransformer") ObjectProvider<QueryTransformer> rewriteProvider,
+            @Qualifier("loveExternalTranslationQueryTransformer") ObjectProvider<QueryTransformer> translationProvider,
+            ObjectProvider<QueryExpander> queryExpanderProvider) {
         RetrievalAugmentationAdvisor.Builder advisorBuilder = RetrievalAugmentationAdvisor.builder()
                 .documentRetriever(documentRetriever)
                 // 没有合适候选人时仍让模型输出空 matches，而不是把普通文本强行解析成对象。
@@ -113,10 +121,10 @@ public class LoveAppLocalRagConfiguration {
                         .allowEmptyContext(true)
                         .build())
                 .order(RAG_ADVISOR_ORDER);
-        QueryTransformer queryTransformer = queryTransformerProvider.getIfAvailable();
-        if (queryTransformer != null) {
-            advisorBuilder.queryTransformers(queryTransformer);
-        }
+        LoveRagQueryChain.applyToBuilder(
+                advisorBuilder,
+                LoveRagQueryChain.assembleQueryTransformers(compressionProvider, rewriteProvider, translationProvider),
+                queryExpanderProvider);
         return advisorBuilder.build();
     }
 

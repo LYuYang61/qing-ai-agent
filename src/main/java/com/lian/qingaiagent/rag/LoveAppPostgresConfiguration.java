@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
+import org.springframework.ai.rag.preretrieval.query.expansion.QueryExpander;
 import org.springframework.ai.rag.preretrieval.query.transformation.QueryTransformer;
 import org.springframework.ai.rag.retrieval.search.DocumentRetriever;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -158,13 +159,17 @@ public class LoveAppPostgresConfiguration {
     @ConditionalOnProperty(prefix = "qing.ai.rag.local", name = "enabled", havingValue = "true")
     public org.springframework.ai.chat.client.advisor.api.Advisor loveAppHybridRagAdvisor(
             @Qualifier("loveAppHybridDocumentRetriever") DocumentRetriever documentRetriever,
-            ObjectProvider<QueryTransformer> queryTransformerProvider) {
+            @Qualifier("loveCompressionQueryTransformer") ObjectProvider<QueryTransformer> compressionProvider,
+            @Qualifier("loveRewriteQueryTransformer") ObjectProvider<QueryTransformer> rewriteProvider,
+            @Qualifier("loveExternalTranslationQueryTransformer") ObjectProvider<QueryTransformer> translationProvider,
+            ObjectProvider<QueryExpander> queryExpanderProvider) {
         RetrievalAugmentationAdvisor.Builder advisorBuilder = RetrievalAugmentationAdvisor.builder()
                 .documentRetriever(documentRetriever);
-        QueryTransformer queryTransformer = queryTransformerProvider.getIfAvailable();
-        if (queryTransformer != null) {
-            advisorBuilder.queryTransformers(queryTransformer);
-        }
+        // 查询转换器链与扩展器统一走 LoveRagQueryChain，与本地 FAQ/候选人 Advisor 保持一致。
+        LoveRagQueryChain.applyToBuilder(
+                advisorBuilder,
+                LoveRagQueryChain.assembleQueryTransformers(compressionProvider, rewriteProvider, translationProvider),
+                queryExpanderProvider);
         return advisorBuilder.order(-100).build();
     }
 }

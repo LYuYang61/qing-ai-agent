@@ -27,10 +27,13 @@ public class LoveAppQueryTransformationConfiguration {
         RestClient restClient = RestClient.builder()
                 .baseUrl(translation.getBaseUrl())
                 .build();
-        return new ExternalTranslationQueryTransformer(
-                restClient,
-                translation.getSourceLanguage(),
-                translation.getTargetLanguage(),
-                translation.getApiKey());
+        // 与压缩、重写一致：包一层日志装饰器，把每次输入与输出打到 INFO；
+        // 外部服务失败回退原查询时，日志里输出等于输入，可直接看出降级发生。
+        return new LoggingQueryTransformer("查询翻译",
+                new ExternalTranslationQueryTransformer(
+                        restClient,
+                        translation.getSourceLanguage(),
+                        translation.getTargetLanguage(),
+                        translation.getApiKey()));
     }
 }

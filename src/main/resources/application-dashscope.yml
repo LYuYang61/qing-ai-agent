@@ -49,5 +49,18 @@ qing:
         api-key: ${LIBRETRANSLATE_API_KEY:}
         source-language: auto
         target-language: zh
+      # 查询压缩：把连续对话中的追问改写成独立问题再检索；默认开启——守卫保证首轮与无记忆链路
+      # 零额外成本，多轮对话中每次追问多一次模型调用，换取检索对症。
+      query-compression:
+        enabled: true
+      # 查询重写：面向检索系统规范化查询表述；开启后每次请求多一次模型调用。
+      query-rewrite:
+        enabled: false
+        target-search-system: vector store
+      # 多查询扩展：一个问题裂变成多个检索变体；开启后除一次模型调用外，每个变体各触发一轮检索。
+      query-expansion:
+        enabled: false
+        number-of-queries: 3
+        include-original: true
       postgres:
         enabled: false

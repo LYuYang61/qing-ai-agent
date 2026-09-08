@@ -23,6 +23,12 @@ public class RagProperties {
 
     private final QueryTranslation queryTranslation = new QueryTranslation();
 
+    private final QueryCompression queryCompression = new QueryCompression();
+
+    private final QueryRewrite queryRewrite = new QueryRewrite();
+
+    private final QueryExpansion queryExpansion = new QueryExpansion();
+
     private final Postgres postgres = new Postgres();
 
     public Local getLocal() {
@@ -39,6 +45,18 @@ public class RagProperties {
 
     public QueryTranslation getQueryTranslation() {
         return queryTranslation;
+    }
+
+    public QueryCompression getQueryCompression() {
+        return queryCompression;
+    }
+
+    public QueryRewrite getQueryRewrite() {
+        return queryRewrite;
+    }
+
+    public QueryExpansion getQueryExpansion() {
+        return queryExpansion;
     }
 
     public Postgres getPostgres() {
@@ -301,6 +319,80 @@ public class RagProperties {
 
         public void setTargetLanguage(String targetLanguage) {
             this.targetLanguage = targetLanguage;
+        }
+    }
+
+    /** 查询压缩：把带上下文的追问改写成独立问题，服务于记忆链路上的连续对话检索。 */
+    public static class QueryCompression {
+
+        private boolean enabled;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+    }
+
+    /** 查询重写：面向检索系统规范化查询表述。 */
+    public static class QueryRewrite {
+
+        private boolean enabled;
+
+        /** RewriteQueryTransformer 的检索目标描述，与内置默认值一致，保留为可配置项便于实验对比。 */
+        private String targetSearchSystem = "vector store";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getTargetSearchSystem() {
+            return targetSearchSystem;
+        }
+
+        public void setTargetSearchSystem(String targetSearchSystem) {
+            this.targetSearchSystem = targetSearchSystem;
+        }
+    }
+
+    /** 多查询扩展：一个问题裂变成多个检索变体。 */
+    public static class QueryExpansion {
+
+        private boolean enabled;
+
+        private int numberOfQueries = 3;
+
+        /** 原查询是否与变体一起参与检索；默认开启，变体集体跑偏时保底召回。 */
+        private boolean includeOriginal = true;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getNumberOfQueries() {
+            return numberOfQueries;
+        }
+
+        public void setNumberOfQueries(int numberOfQueries) {
+            this.numberOfQueries = numberOfQueries;
+        }
+
+        public boolean isIncludeOriginal() {
+            return includeOriginal;
+        }
+
+        public void setIncludeOriginal(boolean includeOriginal) {
+            this.includeOriginal = includeOriginal;
         }
     }
 

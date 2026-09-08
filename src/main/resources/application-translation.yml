@@ -8,7 +8,7 @@ qing:
     rag:
       query-translation:
         enabled: true
-        base-url: ${QING_AI_TRANSLATION_BASE_URL:https://libretranslate.com}
+        base-url: ${QING_AI_TRANSLATION_BASE_URL:http://127.0.0.1:5000}
         api-key: ${LIBRETRANSLATE_API_KEY:}
         source-language: auto
         target-language: zh

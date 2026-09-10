@@ -64,3 +64,22 @@ qing:
         include-original: true
       postgres:
         enabled: false
+    tools:
+      # 工具文件统一落到 tmp/tools；tmp/ 已加入 .gitignore，避免提交用户内容和下载文件。
+      workspace: ${QING_AI_TOOLS_DIR:${user.dir}/tmp/tools}
+      max-file-bytes: 2097152
+      network-timeout-ms: 10000
+      max-web-response-chars: 12000
+      max-download-bytes: 10485760
+      search:
+        # SearchAPI 密钥只通过环境变量或 IDEA Run/Debug Configuration 注入；保留空默认值，未配置时搜索工具优雅降级而不是启动失败。
+        api-key: ${SEARCH_API_KEY:}
+        api-url: https://www.searchapi.io/api/v1/search
+        engine: baidu
+        result-limit: 5
+      terminal:
+        # 终端工具可以执行操作系统命令，默认关闭；确认风险后再改为 true。
+        enabled: false
+        timeout-ms: 10000
+      time:
+        default-zone: Asia/Shanghai

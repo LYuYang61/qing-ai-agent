@@ -26,7 +26,7 @@ spring:
 
 # 与教程保持一致，统一通过 /api 作为后端接口上下文路径。
 server:
-  port: 8123
+  port: 8124
   servlet:
     context-path: /api
 

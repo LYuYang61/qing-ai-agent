@@ -33,6 +33,9 @@
         <dashscope.version>2.22.24</dashscope.version>
         <langchain4j.version>1.18.0-beta28</langchain4j.version>
         <hutool.version>5.8.47</hutool.version>
+        <!-- 2026-09 Maven Central stable releases: web HTML parsing and PDF generation. -->
+        <jsoup.version>1.23.2</jsoup.version>
+        <itext.version>9.7.1</itext.version>
         <knife4j.version>4.5.0</knife4j.version>
         <kryo.version>5.6.2</kryo.version>
     </properties>
@@ -64,6 +67,25 @@
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
             <version>${hutool.version}</version>
+        </dependency>
+        <!-- 第六期网页抓取工具；不要与 Spring AI 或 LangChain4j 的工具包混用。 -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>${jsoup.version}</version>
+        </dependency>
+        <!-- 第六期 PDF 工具；iText Core 为 AGPL 许可，商业项目需另行确认授权。 -->
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>itext-core</artifactId>
+            <version>${itext.version}</version>
+            <type>pom</type>
+        </dependency>
+        <!-- STSongStd-Light 等中文字体资源必须在运行时可见，不能使用 tutorial 的 test scope。 -->
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>font-asian</artifactId>
+            <version>${itext.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.xiaoymin</groupId>

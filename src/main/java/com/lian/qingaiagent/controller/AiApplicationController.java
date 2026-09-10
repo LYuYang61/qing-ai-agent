@@ -66,6 +66,12 @@ public class AiApplicationController {
         return loveApp.chatWithRag(message, chatId, status);
     }
 
+    /** 工具调用示例：模型会根据请求自主选择已注册的文件、网络、PDF、时间等工具。 */
+    @GetMapping("/love/tools")
+    public String loveTools(@RequestParam String message, @RequestParam String chatId) {
+        return loveApp.chatWithTools(message, chatId);
+    }
+
     @GetMapping("/study/chat")
     public String studyChat(@RequestParam String message, @RequestParam String chatId) {
         return studyPlannerApp.chat(message, chatId);

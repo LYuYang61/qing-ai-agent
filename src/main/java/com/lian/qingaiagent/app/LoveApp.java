@@ -3,6 +3,7 @@ package com.lian.qingaiagent.app;
 import com.lian.qingaiagent.advisor.ReReadingAdvisor;
 import com.lian.qingaiagent.advisor.StudyLoggerAdvisor;
 import com.lian.qingaiagent.rag.LoveRagFilterFactory;
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
@@ -36,9 +37,12 @@ public class LoveApp {
 
     private final ObjectProvider<Advisor> localFaqRagAdvisorProvider;
 
+    private final ToolCallback[] toolCallbacks;
+
     public LoveApp(@Qualifier("dashScopeChatModel") ChatModel dashScopeChatModel,
                    @Qualifier("loveChatMemory") ChatMemory chatMemory,
-                   @Qualifier("loveAppLocalFaqRagAdvisor") ObjectProvider<Advisor> localFaqRagAdvisorProvider) {
+                   @Qualifier("loveAppLocalFaqRagAdvisor") ObjectProvider<Advisor> localFaqRagAdvisorProvider,
+                   @Qualifier("loveToolCallbacks") ToolCallback[] toolCallbacks) {
         // ChatMemory 只负责保存消息；MessageChatMemoryAdvisor 负责把历史消息注入下一次请求。
         // 具体使用内存还是文件，由 qing.ai.chat-memory.backend 配置决定。
         this.chatClient = ChatClient.builder(dashScopeChatModel)
@@ -48,6 +52,7 @@ public class LoveApp {
                         new StudyLoggerAdvisor())
                 .build();
         this.localFaqRagAdvisorProvider = localFaqRagAdvisorProvider;
+        this.toolCallbacks = toolCallbacks;
     }
 
     public String chat(String message, String conversationId) {
@@ -107,6 +112,22 @@ public class LoveApp {
                         // 通过请求参数覆盖 Advisor 的默认过滤条件，按关系状态缩小 FAQ 检索范围。
                         .param(VectorStoreDocumentRetriever.FILTER_EXPRESSION,
                                 LoveRagFilterFactory.faq(status)))
+                .call()
+                .content();
+    }
+
+    /**
+     * 使用本节集中注册的工具完成恋爱相关任务。
+     *
+     * <p>这里使用 {@code toolCallbacks} 而不是把工具对象逐个写进业务方法；Spring AI 会在模型提出
+     * 工具调用后自动执行回调、把结果放回对话，并继续请求模型生成最终回答。会话 ID 仍由 ChatMemory
+     * Advisor 管理，因此一次工具调用的过程也能延续到下一轮对话。</p>
+     */
+    public String chatWithTools(String message, String conversationId) {
+        return chatClient.prompt()
+                .user(message)
+                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, conversationId))
+                .toolCallbacks(toolCallbacks)
                 .call()
                 .content();
     }

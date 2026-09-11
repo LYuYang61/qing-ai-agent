@@ -1,0 +1,9 @@
+spring:
+  config:
+    activate:
+      on-profile: sse
+  ai:
+    mcp:
+      server:
+        stdio: false
+        protocol: SSE

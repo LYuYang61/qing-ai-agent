@@ -10,6 +10,7 @@ import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.mcp.SyncMcpToolCallbackProvider;
 import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -39,10 +40,13 @@ public class LoveApp {
 
     private final ToolCallback[] toolCallbacks;
 
+    private final ObjectProvider<SyncMcpToolCallbackProvider> mcpToolCallbackProvider;
+
     public LoveApp(@Qualifier("dashScopeChatModel") ChatModel dashScopeChatModel,
                    @Qualifier("loveChatMemory") ChatMemory chatMemory,
                    @Qualifier("loveAppLocalFaqRagAdvisor") ObjectProvider<Advisor> localFaqRagAdvisorProvider,
-                   @Qualifier("loveToolCallbacks") ToolCallback[] toolCallbacks) {
+                   @Qualifier("loveToolCallbacks") ToolCallback[] toolCallbacks,
+                   ObjectProvider<SyncMcpToolCallbackProvider> mcpToolCallbackProvider) {
         // ChatMemory 只负责保存消息；MessageChatMemoryAdvisor 负责把历史消息注入下一次请求。
         // 具体使用内存还是文件，由 qing.ai.chat-memory.backend 配置决定。
         this.chatClient = ChatClient.builder(dashScopeChatModel)
@@ -53,6 +57,7 @@ public class LoveApp {
                 .build();
         this.localFaqRagAdvisorProvider = localFaqRagAdvisorProvider;
         this.toolCallbacks = toolCallbacks;
+        this.mcpToolCallbackProvider = mcpToolCallbackProvider;
     }
 
     public String chat(String message, String conversationId) {
@@ -128,6 +133,32 @@ public class LoveApp {
                 .user(message)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, conversationId))
                 .toolCallbacks(toolCallbacks)
+                .call()
+                .content();
+    }
+
+    /**
+     * 使用 MCP 客户端发现的远程工具完成对话。
+     *
+     * <p>MCP 工具提供者按需发现远程服务的工具，不能在应用启动时主动展开，否则会把每个
+     * MCP 服务的网络握手都推迟到启动阶段。这里在真正请求前检查并传入 provider，Spring AI
+     * 随后会把 MCP 工具作为普通 ToolCallback 交给模型，并托管工具调用循环。</p>
+     */
+    public String chatWithMcp(String message, String conversationId) {
+        SyncMcpToolCallbackProvider provider = mcpToolCallbackProvider.getIfAvailable();
+        if (provider == null) {
+            throw new IllegalStateException("MCP 客户端未启用，请使用 dashscope,mcp 或 dashscope,mcp-json Profile");
+        }
+
+        // 触发一次工具发现，避免配置了 MCP Profile 但没有连接时静默返回空回答。
+        if (provider.getToolCallbacks().length == 0) {
+            throw new IllegalStateException("MCP 客户端没有发现工具，请先构建 MCP 服务并检查连接配置");
+        }
+
+        return chatClient.prompt()
+                .user(message)
+                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, conversationId))
+                .toolCallbacks(provider)
                 .call()
                 .content();
     }

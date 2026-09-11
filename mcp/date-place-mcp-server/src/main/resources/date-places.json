@@ -1,0 +1,74 @@
+[
+  {
+    "name": "静安雕塑公园",
+    "city": "上海",
+    "district": "静安区",
+    "category": "公园",
+    "tags": ["安静", "散步", "拍照", "户外", "低预算"],
+    "budgetPerPerson": 20,
+    "rating": 4.8,
+    "address": "上海市静安区石门二路128号",
+    "description": "城市中心的开放式公园，适合边散步边聊天，也方便安排周边咖啡店作为第二站。",
+    "bestTime": "春秋季下午或傍晚"
+  },
+  {
+    "name": "上海自然博物馆",
+    "city": "上海",
+    "district": "静安区",
+    "category": "室内展馆",
+    "tags": ["室内", "科普", "安静", "雨天", "拍照"],
+    "budgetPerPerson": 60,
+    "rating": 4.7,
+    "address": "上海市静安区山海关路399号",
+    "description": "适合雨天或希望边参观边找话题的约会，行程节奏相对稳定。",
+    "bestTime": "工作日下午或周末开馆时段"
+  },
+  {
+    "name": "1933老场坊",
+    "city": "上海",
+    "district": "虹口区",
+    "category": "历史建筑",
+    "tags": ["拍照", "建筑", "咖啡", "室内", "文艺"],
+    "budgetPerPerson": 100,
+    "rating": 4.6,
+    "address": "上海市虹口区溧阳路611号",
+    "description": "保留工业建筑空间，适合拍照、逛小店并安排一顿轻食。",
+    "bestTime": "周末下午"
+  },
+  {
+    "name": "外滩源",
+    "city": "上海",
+    "district": "黄浦区",
+    "category": "城市漫步",
+    "tags": ["夜景", "散步", "建筑", "餐厅", "拍照"],
+    "budgetPerPerson": 150,
+    "rating": 4.8,
+    "address": "上海市黄浦区中山东一路33号附近",
+    "description": "适合把城市建筑、江景散步和晚餐组合成完整行程，预算通常相对更高。",
+    "bestTime": "晴天傍晚至夜间"
+  },
+  {
+    "name": "西湖曲院风荷",
+    "city": "杭州",
+    "district": "西湖区",
+    "category": "湖畔公园",
+    "tags": ["散步", "自然", "拍照", "低预算", "户外"],
+    "budgetPerPerson": 30,
+    "rating": 4.9,
+    "address": "杭州市西湖区北山街附近",
+    "description": "适合慢节奏湖畔散步和拍照，可以根据体力延伸到其他西湖景点。",
+    "bestTime": "春秋季上午或傍晚"
+  },
+  {
+    "name": "什刹海",
+    "city": "北京",
+    "district": "西城区",
+    "category": "湖畔街区",
+    "tags": ["夜景", "散步", "小吃", "拍照", "户外"],
+    "budgetPerPerson": 80,
+    "rating": 4.7,
+    "address": "北京市西城区什刹海街区",
+    "description": "可以把湖边散步、胡同漫游和小吃安排在同一条路线中。",
+    "bestTime": "傍晚至夜间"
+  }
+]

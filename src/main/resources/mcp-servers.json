@@ -1,0 +1,30 @@
+{
+  "mcpServers": {
+    "image-search": {
+      "command": "java",
+      "args": [
+        "-Dspring.ai.mcp.server.stdio=true",
+        "-Dspring.profiles.active=stdio",
+        "-Dspring.main.web-application-type=none",
+        "-Dspring.main.banner-mode=off",
+        "-Dlogging.level.root=OFF",
+        "-jar",
+        "mcp/image-search-mcp-server/target/image-search-mcp-server-0.0.1-SNAPSHOT.jar"
+      ],
+      "env": {}
+    },
+    "date-place": {
+      "command": "java",
+      "args": [
+        "-Dspring.ai.mcp.server.stdio=true",
+        "-Dspring.profiles.active=stdio",
+        "-Dspring.main.web-application-type=none",
+        "-Dspring.main.banner-mode=off",
+        "-Dlogging.level.root=OFF",
+        "-jar",
+        "mcp/date-place-mcp-server/target/date-place-mcp-server-0.0.1-SNAPSHOT.jar"
+      ],
+      "env": {}
+    }
+  }
+}

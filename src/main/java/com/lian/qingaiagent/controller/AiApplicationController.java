@@ -72,6 +72,12 @@ public class AiApplicationController {
         return loveApp.chatWithTools(message, chatId);
     }
 
+    /** MCP 客户端示例：使用配置中发现的远程工具回答问题。 */
+    @GetMapping("/love/mcp")
+    public String loveMcp(@RequestParam String message, @RequestParam String chatId) {
+        return loveApp.chatWithMcp(message, chatId);
+    }
+
     @GetMapping("/study/chat")
     public String studyChat(@RequestParam String message, @RequestParam String chatId) {
         return studyPlannerApp.chat(message, chatId);

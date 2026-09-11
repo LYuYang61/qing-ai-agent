@@ -1,0 +1,20 @@
+spring:
+  config:
+    activate:
+      on-profile: mcp-sse
+  ai:
+    mcp:
+      client:
+        enabled: true
+        name: qing-ai-agent-mcp-sse-client
+        version: 0.0.1
+        type: SYNC
+        request-timeout: 20s
+        sse:
+          connections:
+            image-search:
+              url: http://localhost:8127
+              sse-endpoint: /sse
+            date-place:
+              url: http://localhost:8128
+              sse-endpoint: /sse

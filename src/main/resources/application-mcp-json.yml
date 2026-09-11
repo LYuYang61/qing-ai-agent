@@ -1,0 +1,15 @@
+spring:
+  config:
+    activate:
+      on-profile: mcp-json
+  ai:
+    mcp:
+      client:
+        enabled: true
+        name: qing-ai-agent-mcp-json-client
+        version: 0.0.1
+        type: SYNC
+        request-timeout: 20s
+        stdio:
+          # Claude Desktop 风格的 JSON 配置，适合对照教程学习；密钥由父进程环境继承。
+          servers-configuration: classpath:mcp-servers.json

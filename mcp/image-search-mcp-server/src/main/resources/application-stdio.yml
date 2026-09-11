@@ -1,0 +1,15 @@
+spring:
+  config:
+    activate:
+      on-profile: stdio
+  main:
+    web-application-type: none
+  ai:
+    mcp:
+      server:
+        # stdio 由客户端启动子进程；设置后 WebMVC SSE transport 会被禁用。
+        stdio: true
+        protocol: SSE
+  logging:
+    level:
+      root: OFF

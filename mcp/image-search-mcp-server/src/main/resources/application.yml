@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: image-search-mcp-server
+  profiles:
+    default: sse
+  main:
+    banner-mode: off
+  ai:
+    mcp:
+      server:
+        enabled: true
+        name: image-search-mcp-server
+        version: 0.0.1
+        type: SYNC
+        protocol: SSE
+        stdio: false
+        instructions: "提供受限的 Pexels 图片搜索工具，结果带有来源和摄影师信息。"
+        capabilities:
+          resource: false
+          prompt: false
+          completion: false
+        sse-endpoint: /sse
+        sse-message-endpoint: /mcp/message
+
+server:
+  port: 8127
+
+mcp:
+  image-search:
+    api-key: ${PEXELS_API_KEY:}
+    base-url: ${PEXELS_BASE_URL:https://api.pexels.com}
+    locale: zh-CN
+    default-limit: 5
+    max-limit: 10
+    request-timeout: 10s

@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: date-place-mcp-server
+  profiles:
+    default: sse
+  main:
+    banner-mode: off
+  ai:
+    mcp:
+      server:
+        enabled: true
+        name: date-place-mcp-server
+        version: 0.0.1
+        type: SYNC
+        protocol: SSE
+        stdio: false
+        instructions: "提供本地静态约会地点目录的筛选推荐，不承诺实时营业和精确距离。"
+        capabilities:
+          resource: false
+          prompt: false
+          completion: false
+        sse-endpoint: /sse
+        sse-message-endpoint: /mcp/message
+
+server:
+  port: 8128
+
+mcp:
+  date-place:
+    catalog: ${DATE_PLACE_CATALOG:classpath:date-places.json}
+    max-results: 5

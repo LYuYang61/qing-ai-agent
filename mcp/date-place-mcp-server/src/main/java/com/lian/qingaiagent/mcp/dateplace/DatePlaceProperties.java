@@ -8,7 +8,7 @@ public class DatePlaceProperties {
 
     private String catalog = "classpath:date-places.json";
 
-    private int maxResults = 5;
+    private int maxResults = 10;
 
     public String getCatalog() {
         return catalog;

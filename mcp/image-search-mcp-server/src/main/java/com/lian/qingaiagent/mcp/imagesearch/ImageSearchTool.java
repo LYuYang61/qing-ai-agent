@@ -39,6 +39,9 @@ public class ImageSearchTool {
                             ObjectMapper objectMapper) {
         this.properties = properties;
         this.objectMapper = objectMapper;
+        // 只记录密钥是否存在，绝不打印密钥内容；排查"配置了却没生效"类问题的一眼定案手段。
+        log.info("ImageSearchTool 初始化：Pexels API 密钥{}",
+                StringUtils.hasText(properties.getApiKey()) ? "已配置" : "未配置（搜索将返回配置缺失提示）");
 
         // RestClient 默认不会替业务请求设置超时；这里显式限制外部 API 等待时间。
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
@@ -58,7 +61,10 @@ public class ImageSearchTool {
      */
     @Tool(name = "searchImages",
             description = "从 Pexels 搜索公开图片，返回图片页面地址、缩略图地址和摄影师信息；"
-                    + "适合寻找约会、旅行或学习场景的配图，结果展示时应保留 Pexels 与摄影师署名")
+                    + "仅当用户明确要求查找、展示或下载图片时才调用本工具，"
+                    + "不要为了美化或丰富其他回答而主动搜索图片；"
+                    + "图片链接只能来自本工具的真实返回，更换关键词时必须重新调用，禁止凭记忆给出或编造任何图片地址；"
+                    + "结果展示时应保留 Pexels 与摄影师署名")
     public String searchImages(
             @ToolParam(description = "图片搜索关键词，例如 上海 夜景、情侣约会或 coding") String query,
             @ToolParam(required = false, description = "返回数量，范围为 1 到 10，默认 5") Integer limit) {

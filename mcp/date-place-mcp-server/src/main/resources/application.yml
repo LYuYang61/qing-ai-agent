@@ -28,4 +28,4 @@ server:
 mcp:
   date-place:
     catalog: ${DATE_PLACE_CATALOG:classpath:date-places.json}
-    max-results: 5
+    max-results: 10

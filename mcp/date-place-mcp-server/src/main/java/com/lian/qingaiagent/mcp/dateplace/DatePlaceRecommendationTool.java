@@ -42,16 +42,25 @@ public class DatePlaceRecommendationTool {
      * 推荐约会地点。
      *
      * <p>目录是学习数据，不承诺实时营业、交通距离或空位；工具描述明确这一点，避免
-     * 模型把静态目录结果误说成实时地图查询。</p>
+     * 模型把静态目录结果误说成实时地图查询。实测（2026-09-12）沉淀了三条行为发现并
+     * 逐一加固描述：①追问"预算提到 200"时模型跳过工具凭记忆作答（已加"参数变化必须
+     * 重新调用"）；②用户要求 20 条而服务端封顶 5 条时，模型把工具结果与自身知识缝合
+     * 成 20 条并用静态声明背书（已加"结果即全部匹配、不足时如实告知"，并把 note 改为
+     * 强表述、maxResults 提到 10 缩小落差）。工具描述是软约束，用户指令可能压过它——
+     * 这是 LLM 工具治理的已知边界，生产需结构化输出兜底。</p>
      */
     @Tool(name = "recommendDatePlaces",
             description = "根据城市或区域、约会偏好和人均预算，从本地维护的约会地点目录中推荐场所；"
+                    + "返回结果已包含目录中全部匹配条目，数量少于用户要求时必须如实告知"
+                    + "\"目录仅有 N 条匹配\"，绝不自行补充目录之外的场所；"
+                    + "用户调整预算、区域或偏好等任何条件时，必须重新调用本工具获取新结果，"
+                    + "禁止基于记忆或自身知识推荐目录之外的场所；"
                     + "结果是静态学习数据，不代表实时营业状态、精确距离或空位，请向用户说明这一点")
     public String recommendDatePlaces(
             @ToolParam(description = "城市或区域，例如上海静安区、杭州西湖") String location,
             @ToolParam(required = false, description = "偏好关键词，例如安静、散步、室内、拍照或低预算") String preference,
             @ToolParam(required = false, description = "可接受的人均预算，单位为人民币元") Integer budgetPerPerson,
-            @ToolParam(required = false, description = "最多返回数量，默认 5，最大不超过服务配置") Integer limit) {
+            @ToolParam(required = false, description = "最多返回数量，默认 10，最大不超过服务配置") Integer limit) {
         try {
             return objectMapper.writeValueAsString(recommend(location, preference, budgetPerPerson, limit));
         }
@@ -98,8 +107,8 @@ public class DatePlaceRecommendationTool {
 
         String note = recommendations.isEmpty()
                 ? "目录中没有同时满足地点和预算条件的记录；可以扩大区域或提高预算后重试。"
-                : "这是本地静态目录的筛选结果，不包含实时距离、营业状态和预约信息。"
-                + "正式使用前请核验场所官方信息。";
+                : "这是本地静态目录的全部匹配结果，共 " + recommendations.size()
+                + " 条；不包含实时距离、营业状态和预约信息，正式使用前请核验场所官方信息。";
         return new RecommendationResponse(location.trim(), preference, budgetPerPerson, recommendations, note);
     }
 

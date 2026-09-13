@@ -83,3 +83,14 @@ qing:
         timeout-ms: 10000
       time:
         default-zone: Asia/Shanghai
+    agent:
+      # 超级智能体默认先进行一次短规划，再进入工具调用循环；学习成本或调用成本敏感时可关闭。
+      planning-enabled: true
+      # 单次运行步数预算须同时覆盖"研究"与"产出"两阶段；每轮系统提示词会注入剩余步数，
+      # 提醒模型在预算耗尽前转入产出并调用 terminate（实测 12 步会全部耗在研究阶段）。
+      max-steps: 18
+      duplicate-threshold: 2
+      max-plan-steps: 6
+      # askHuman 暂停的运行保存在内存中，生产环境应替换为带用户身份和 TTL 的持久化存储。
+      max-active-runs: 20
+      run-ttl: 30m

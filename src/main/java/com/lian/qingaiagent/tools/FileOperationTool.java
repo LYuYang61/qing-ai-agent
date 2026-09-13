@@ -16,7 +16,8 @@ public class FileOperationTool {
         this.storage = storage;
     }
 
-    @Tool(name = "readFile", description = "读取工具 workspace 中指定文件的 UTF-8 文本内容")
+    @Tool(name = "readFile", description = "读取工具 workspace 中 file 目录下指定文件的 UTF-8 文本内容；"
+            + "只能读取 file 目录，无法读取 pdf 或 download 目录中的文件")
     public String readFile(@ToolParam(description = "要读取的文件名，不能访问 workspace 之外的路径") String fileName) {
         try {
             return storage.readUtf8(NAMESPACE, fileName);

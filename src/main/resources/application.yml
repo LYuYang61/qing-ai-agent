@@ -16,7 +16,7 @@ spring:
           # qwen3.7-plus/flash 属于原生多模态系列,百炼只在多模态端点提供服务:
           # 必须开启 multi-model 让适配器把请求发往 multimodal-generation,否则报 url error。
           # qwen3.7-max 额度耗尽后全局切换到 flash;想换 plus 只改模型名(同为多模态系)。
-          model: qwen3.7-flash
+          model: qwen3.7-flash-2026-07-15
           multi-model: true
   # 上传接口只用于多模态学习示例，限制单个请求大小，避免误传超大文件。
   servlet:
@@ -57,5 +57,5 @@ qing:
       file-dir: ${QING_AI_CHAT_MEMORY_DIR:${user.dir}/tmp/chat-memory}
       max-messages: 20
     multimodal:
-      model: qwen3.7-flash
+      model: qwen3.7-flash-2026-07-15
       max-upload-bytes: 10485760
